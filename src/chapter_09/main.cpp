@@ -492,7 +492,7 @@ int main()
    // take last N in ascending order
 #ifndef WIN32
    {
-      using namespace n902;
+      using namespace n901;
 
       for (auto i :
          std::views::iota(1, 101) |
@@ -705,7 +705,7 @@ int main()
 #ifndef WIN32
       std::string text{ "this is a demo!" };
       constexpr std::string_view delim{ " " };
-      for (auto const word : text | rv::split(delim))
+      for (auto const word : text | std::ranges::views::split(delim))
       {
          std::cout << std::string_view(word.begin(), word.end()) << '\n';
       }

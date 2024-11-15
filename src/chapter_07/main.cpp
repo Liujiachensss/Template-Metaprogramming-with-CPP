@@ -16,6 +16,7 @@
 
 namespace n701
 {
+   // 动态多态的例子
    struct game_unit
    {
       virtual void attack() = 0;
@@ -53,6 +54,7 @@ namespace n701
       }
    };
 
+   // 函数重载的例子
    struct attack 
    { 
       int value; 
@@ -82,6 +84,7 @@ namespace n701
 
 namespace n702
 {
+   // 静态多态的例子
    template <typename T>
    struct Base
    {
@@ -93,9 +96,16 @@ namespace n702
       void f() { std::cout << "Derived::f()\n"; }
    };
 
+   struct Derived2 : public Base<Derived2>
+   {
+      void f() { std::cout << "Derived2::f()\n"; }
+   };
+
+
    template <typename T>
    void process(Base<T>& b)
    {
+      std::cout << __PRETTY_FUNCTION__ << "\n";
       b.f();
    }
 }
@@ -142,7 +152,7 @@ namespace n704
    template <typename T, size_t N>
    struct limited_instances 
    {
-      static std::atomic<size_t> count;
+      static inline std::atomic<size_t> count = 0;
       limited_instances()
       {
          if (count >= N)
@@ -152,8 +162,8 @@ namespace n704
       ~limited_instances() { --count; }
    };
 
-   template <typename T, size_t N>
-   std::atomic<size_t> limited_instances<T, N>::count = 0;
+   // template <typename T, size_t N>
+   // std::atomic<size_t> limited_instances<T, N>::count = 0;
 
    struct excalibur : limited_instances<excalibur, 1> {};
    struct book_of_magic : limited_instances<book_of_magic, 3> {};
@@ -289,7 +299,9 @@ namespace n708
    struct hero : base_unit<hero>
    {
       hero(std::string_view n) : name(n) {}
-
+      //! 这段代码的用途可能是为了将hero对象表示为一个容器，
+      //! 以便在需要迭代hero对象时可以使用标准库中的算法，如std::for_each、std::find等。
+      // 不过需要注意的是，由于hero对象只有一个元素，所以里目的是统一hero和hero-party的行为。
       hero* begin() { return this; }
       hero* end() { return this + 1; }
 
@@ -311,9 +323,9 @@ namespace n708
    template <typename U>
    void base_unit<T>::ally_with(U& other)
    {
-      for (hero& from : *static_cast<T*>(this))
+      for (hero& from : *static_cast<T*>(this)) // 可能调用hero::begin() 和 hero::end()
       {
-         for (hero& to : other)
+         for (hero& to : other)                 // 可能调用hero::begin() 和 hero::end()
          {
             from.connections.insert(&to);
             to.connections.insert(&from);
@@ -324,9 +336,9 @@ namespace n708
    template <typename T>
    std::ostream& operator<<(std::ostream& os, base_unit<T>& object)
    {
-      for (hero& obj : *static_cast<T*>(&object))
+      for (hero& obj : *static_cast<T*>(&object)) // 可能调用hero::begin() 和 hero::end()
       {
-         for (hero* n : obj.connections)
+         for (hero* n : obj.connections)          // 可能调用hero::begin() 和 hero::end()
             os << obj.name << " --> [" << n->name << "]" << '\n';
       }
       return os;
@@ -349,7 +361,7 @@ namespace n709c
 {
    struct executor
    {
-      void execute(std::function<void(void)> const& task)
+      void execute(std::function<void(void)> const& task) // 异步执行
       {
          threads.push_back(std::thread([task]() { 
             using namespace std::chrono_literals;
@@ -377,7 +389,16 @@ namespace n709c
       {
          if (exec)
          {
+            // lambda函数捕获当前building对象的指针（self = this），
+            // 这意味着在executor的execute函数执行lambda函数时，
+            // building对象可能已经被销毁，导致悬挂指针问题。
+            // 正确的做法是使用shared_from_this()函数获取当前building对象的std::shared_ptr，
+            // 然后捕获这个std::shared_ptr(self = shared_from_this())。
+#if 1
             exec->execute([self = shared_from_this()]() {
+#else 
+            exec->execute([self = this]() { // building析构之后再升级
+#endif
                self->do_upgrade();
             });
          }
@@ -554,74 +575,36 @@ namespace n710c
    };
 }
 
-namespace n711a
+
+namespace n712e //C风格的类型擦除
 {
-   namespace details 
+   struct knight
    {
-      template <typename Iter, typename Distance>
-      void advance(Iter& it, Distance n, std::random_access_iterator_tag)
-      {
-         it += n;
-      }
+      void attack() { std::cout << "draw sword\n"; }
+   };
 
-      template <typename Iter, typename Distance>
-      void advance(Iter& it, Distance n, std::bidirectional_iterator_tag)
-      {
-         if (n > 0)
-         {
-            while (n--) ++it;
-         }
-         else
-         {
-            while (n++) --it;
-         }
-      }
+   struct mage
+   {
+      void attack() { std::cout << "spell magic curse\n"; }
+   };
 
-      template <typename Iter, typename Distance>
-      void advance(Iter& it, Distance n, std::input_iterator_tag)
-      {
-         while (n--)
-         {
-            ++it;
-         }
-      }
+   void fight_knight(void* k)
+   {
+      reinterpret_cast<knight*>(k)->attack();
    }
 
-   template <typename Iter, typename Distance>
-   void advance(Iter& it, Distance n)
+   void fight_mage(void* m)
    {
-      details::advance(it, n,
-         typename std::iterator_traits<Iter>::iterator_category{});
-   }
-}
-
-namespace n711b
-{
-   template <std::random_access_iterator Iter, typename Distance>
-   void advance(Iter& it, Distance n)
-   {
-      it += n;
+      reinterpret_cast<mage*>(m)->attack();
    }
 
-   template <std::bidirectional_iterator Iter, typename Distance>
-   void advance(Iter& it, Distance n)
-   {
-      if (n > 0)
-      {
-         while (n--) ++it;
-      }
-      else
-      {
-         while (n++) --it;
-      }
-   }
+   using fight_fn = void(*)(void*);
 
-   template <std::input_iterator Iter, typename Distance>
-   void advance(Iter& it, Distance n)
+   void fight(std::vector<std::pair<void*, fight_fn>> const& units)
    {
-      while (n--)
+      for (auto& u : units)
       {
-         ++it;
+         u.second(u.first);
       }
    }
 }
@@ -637,6 +620,13 @@ namespace n712a
    {
       void attack() { std::cout << "spell magic curse\n"; }
    };
+
+   using fight_fn = void (*)(void*);
+   void fight(std::vector<std::pair<void*, fight_fn>> const& units) {
+     for (auto& u : units) {
+       u.second(u.first);
+     }
+   }
 
    struct game_unit
    {
@@ -799,38 +789,6 @@ namespace n712d
    }
 }
 
-namespace n712e
-{
-   struct knight
-   {
-      void attack() { std::cout << "draw sword\n"; }
-   };
-
-   struct mage
-   {
-      void attack() { std::cout << "spell magic curse\n"; }
-   };
-
-   void fight_knight(void* k)
-   {
-      reinterpret_cast<knight*>(k)->attack();
-   }
-
-   void fight_mage(void* m)
-   {
-      reinterpret_cast<mage*>(m)->attack();
-   }
-
-   using fight_fn = void(*)(void*);
-
-   void fight(std::vector<std::pair<void*, fight_fn>> const& units)
-   {
-      for (auto& u : units)
-      {
-         u.second(u.first);
-      }
-   }
-}
 
 namespace n713
 {
@@ -847,8 +805,8 @@ namespace n713
          : check([val]() {return val; })
       { }
 
-      static async_bool yes() { return async_bool{ []() { return true; } }; }
-      static async_bool no() { return async_bool{ []() { return false; } }; }
+      static async_bool yes() { return async_bool{std::function<bool()>( []()->bool { return true; } )}; }
+      static async_bool no() { return async_bool{ std::function<bool()>([]()->bool { return false; }) }; }
 
       bool operator&&(bool fore) const { return fore && check(); }
       bool operator!() const { return !check(); }
@@ -856,8 +814,83 @@ namespace n713
    };
 }
 
+namespace n711a
+{
+   // 标签分派
+   namespace details 
+   {
+      template <typename Iter, typename Distance>
+      void advance(Iter& it, Distance n, std::random_access_iterator_tag)
+      {
+         it += n;
+      }
+
+      template <typename Iter, typename Distance>
+      void advance(Iter& it, Distance n, std::bidirectional_iterator_tag)
+      {
+         if (n > 0)
+         {
+            while (n--) ++it;
+         }
+         else
+         {
+            while (n++) --it;
+         }
+      }
+
+      template <typename Iter, typename Distance>
+      void advance(Iter& it, Distance n, std::input_iterator_tag)
+      {
+         while (n--)
+         {
+            ++it;
+         }
+      }
+   }
+
+   template <typename Iter, typename Distance>
+   void advance(Iter& it, Distance n)
+   {
+      details::advance(it, n,
+         typename std::iterator_traits<Iter>::iterator_category{});
+   }
+}
+
+namespace n711b
+{
+   template <std::random_access_iterator Iter, typename Distance>
+   void advance(Iter& it, Distance n)
+   {
+      it += n;
+   }
+
+   template <std::bidirectional_iterator Iter, typename Distance>
+   void advance(Iter& it, Distance n)
+   {
+      if (n > 0)
+      {
+         while (n--) ++it;
+      }
+      else
+      {
+         while (n++) --it;
+      }
+   }
+
+   template <std::input_iterator Iter, typename Distance>
+   void advance(Iter& it, Distance n)
+   {
+      while (n--)
+      {
+         ++it;
+      }
+   }
+}
+
+
 namespace n714
 {
+   // ch7.7 typelist
    template <typename ... Ts>
    struct typelist {};
 
@@ -1334,6 +1367,7 @@ int main()
 {
    {
       using namespace n701;
+      std::cout << "\n--- ch7.1 polymorphic ---\n";
 
       knight k;
       mage m;
@@ -1352,22 +1386,29 @@ int main()
 
    {
       using namespace n702;
-
+      std::cout << "\n--- ch7.2 CRTP ---\n";
+      std::cout << "\n-- 使用静态多态 \n";
+      std::cout << "\n- 例子1 \n";
+      
       Derived d;
+      Derived2 d2;
       process(d);
+      process(d2);
    }
 
    {
       using namespace n703;
-
+      std::cout << "\n- 例子2 \n";
       knight k;
       mage m;
-      fight<knight>({ &k });
+      fight<knight>({ &k }); // 没法推导knight类型
       fight<mage>({ &m });
+      std::cout << "----------- \n";
    }
 
    {
       using namespace n704;
+      std::cout << "\n-- 使用静态多态 限制实例化次数 \n";
 
       excalibur e1;
       try
@@ -1390,10 +1431,13 @@ int main()
       {
          std::cout << e.what() << '\n';
       }
+      std::cout << "----------- \n";
+
    }
 
    {
       using namespace n705;
+      std::cout << "\n-- 使用静态多态 增加功能\n";
 
       knight k;
       k.advance(3);
@@ -1406,6 +1450,7 @@ int main()
 
    {
       using namespace n706;
+      std::cout << "\n-- 使用非成员函数模板 增加功能 \n";
 
       knight k;
       advance(k, 3);
@@ -1414,10 +1459,12 @@ int main()
       mage m;
       advance(m, 5);
       retreat(m, 3);
+      std::cout << "----------- \n";
    }
 
    {
       using namespace n707;
+      std::cout << "\n-- 使用静态多态 复合设计模式 1\n";
 
       hero k1("Arthur");
       hero k2("Sir Lancelot");
@@ -1429,10 +1476,12 @@ int main()
       std::cout << k1 << '\n';
       std::cout << k2 << '\n';
       std::cout << k3 << '\n';
+      std::cout << "----------- \n";
    }
 
    {
       using namespace n708;
+      std::cout << "\n-- 使用静态多态 复合设计模式2\n";
 
       hero k1("Arthur");
       hero k2("Sir Lancelot");
@@ -1454,15 +1503,17 @@ int main()
       std::cout << k2 << '\n';
       std::cout << p1 << '\n';
       std::cout << p2 << '\n';
+      std::cout << "----------- \n";
    }
 
    {
       using namespace n709a;
+      std::cout << "\n-- 使用标准库的CRTP std::enable_shared_from_this \n";
 
       building* b = new building();
 
       std::shared_ptr<building> p1{ b };
-      //std::shared_ptr<building> p2{ b }; // bad
+      // std::shared_ptr<building> p2{ b }; // double free and corruption
    }
 
    {
@@ -1471,7 +1522,8 @@ int main()
       building* b = new building();
 
       std::shared_ptr<building> p1{ b };
-      std::shared_ptr<building> p2{ b->shared_from_this()}; // OK
+      // std::shared_ptr<building> p2{ b }; // segmentation fault
+      std::shared_ptr<building> p3{ b->shared_from_this()}; // OK
    }
 
    {
@@ -1487,16 +1539,21 @@ int main()
 
    {
       using namespace n710a;
+      std::cout << "----------- \n";
+      std::cout << "\n--- ch7.3 混入 ---\n";
+      std::cout << "-- 例子1 混入 --\n";
 
       knight<last_man_standing> k;
       mage<hit_and_run> m;
 
       k.attack();
       m.attack();
+      std::cout << "----------- \n";
    }
 
    {
       using namespace n710b;
+      std::cout << "-- 例子2 混入 --\n";
 
       movable_unit<knight> k;
       k.advance(3);
@@ -1505,10 +1562,12 @@ int main()
       movable_unit<mage> m;
       m.advance(5);
       m.retreat(3);
+      std::cout << "----------- \n";
    }
 
    {
       using namespace n710c;
+      std::cout << "-- 例子3 --\n";
 
       std::vector<std::unique_ptr<game_unit>> units;
 
@@ -1527,80 +1586,14 @@ int main()
 
       for (auto& u : units)
          u->attack();
+      std::cout << "----------- \n";
    }
 
-   {
-      std::vector<int> v{ 1,2,3,4,5 };
-      auto sv = std::begin(v);
-      n711a::advance(sv, 2);
-
-      std::list<int> l{ 1,2,3,4,5 };
-      auto sl = std::begin(l);
-      n711a::advance(sl, 2);
-   }
 
    {
-      std::vector<int> v{ 1,2,3,4,5 };
-      auto sv = std::begin(v);
-      n711b::advance(sv, 2);
-
-      std::list<int> l{ 1,2,3,4,5 };
-      auto sl = std::begin(l);
-      n711b::advance(sl, 2);
-   }
-
-   {
-      using namespace n712a;
-
-      knight k;
-      mage m;
-
-      knight_unit ku{ k };
-      mage_unit mu{ m };
-
-      std::vector<game_unit*> v{ &ku, &mu };
-      fight(v);
-   }
-
-   {
-      using namespace n712b;
-
-      knight k;
-      mage m;
-
-      game_unit_wrapper ku{ k };
-      game_unit_wrapper mu{ m };
-
-      std::vector<game_unit*> v{ &ku, &mu };
-      fight(v);
-   }
-
-   {
-      using namespace n712c;
-
-      knight k;
-      mage m;
-
-      game g;
-      g.addUnit(k);
-      g.addUnit(m);
-
-      g.fight();
-   }
-
-   {
-      using namespace n712d;
-
-      knight k;
-      mage m;
-
-      std::vector<unit> v{ unit(k), unit(m) };
-      
-      fight(v);
-   }
-
-   {
+      std::cout << "\n--- ch7.4 类型擦除 ---\n";
       using namespace n712e;
+      std::cout << "-- 例子1 C风格的类型擦除 --\n";
 
       knight k;
       mage m;
@@ -1611,18 +1604,66 @@ int main()
       };
 
       fight(units);
+      std::cout << "----------- \n";
    }
 
    {
-      using namespace n713;
+      using namespace n712a;
 
-      async_bool b1{ false };
-      async_bool b2{ true };
-      async_bool b3{ []() {std::cout << "Y/N? "; char c; std::cin >> c; return c == 'Y' || c == 'y'; } };
+      knight k;
+      mage m;
 
-      if (b1) { std::cout << "b1 is true\n"; }
-      if (b2) { std::cout << "b2 is true\n"; }
-      if (b3) { std::cout << "b3 is true\n"; }
+      std::cout << "-- 例子2 动态多态的类型擦除 --\n";
+      knight_unit ku{k};
+      mage_unit mu{m};
+
+      std::vector<game_unit*> v{&ku, &mu};
+      fight(v);
+      std::cout << "----------- \n";
+      
+   }
+
+   {
+      using namespace n712b;
+      std::cout << "-- 例子3 不相关的类型 (鸭子类型）的类型擦除 --\n";
+
+      knight k;
+      mage m;
+
+      game_unit_wrapper ku{ k };
+      game_unit_wrapper mu{ m };
+
+      std::vector<game_unit*> v{ &ku, &mu };
+      fight(v);
+      std::cout << "----------- \n";
+   }
+
+   {
+      using namespace n712c;
+      std::cout << "-- 例子4 类型擦除的封装 --\n";
+
+      knight k;
+      mage m;
+
+      game g;
+      g.addUnit(k);
+      g.addUnit(m);
+
+      g.fight();
+      std::cout << "----------- \n";
+   }
+
+   {
+      using namespace n712d;
+      std::cout << "-- 例子5 类型擦除的封装 --\n";
+
+      knight k;
+      mage m;
+
+      std::vector<unit> v{ unit(k), unit(m) };
+      
+      fight(v);
+      std::cout << "----------- \n";
    }
 
    {
@@ -1640,6 +1681,53 @@ int main()
    }
 
    {
+      using namespace n713;
+      std::cout << "-- 例子6 类型擦除的实际使用 --\n";
+
+      async_bool b1{ false };
+      async_bool b2{ true };
+      // async_bool b3{ std::function<bool()>([]() {std::cout << "Y/N? "; char c; std::cin >> c; return c == 'Y' || c == 'y'; }) };
+
+      if (b1) { std::cout << "b1 is true\n"; }
+      if (b2) { std::cout << "b2 is true\n"; }
+      // if (b3) { std::cout << "b3 is true\n"; }
+      std::cout << "----------- \n";
+   }
+
+   {
+      std::cout << "\n--- ch7.5 标签分派 ---\n";
+      std::vector<int> v{ 1,2,3,4,5 };
+      auto sv = std::begin(v);
+      n711a::advance(sv, 2);
+
+      std::list<int> l{ 1,2,3,4,5 };
+      auto sl = std::begin(l);
+      n711a::advance(sl, 2);
+   }
+
+   {
+      std::vector<int> v{ 1,2,3,4,5 };
+      auto sv = std::begin(v);
+      n711b::advance(sv, 2);
+
+      std::list<int> l{ 1,2,3,4,5 };
+      auto sl = std::begin(l);
+      n711b::advance(sl, 2);
+      std::cout << "----------- \n";
+   }
+
+   {
+      std::cout << "ch7.7 typelist\n";
+      using namespace n715;
+      constexpr bool same = std::is_same_v<transformer<int, double>::output_types,
+                                   n714::typelist<int const, double const>>;
+      static_assert(same);
+      std::cout << "ch7.7 typelist ok\n" << same << '\n';
+   }
+
+   {
+      std::cout << "ch7.6 lazy computing\n";
+      // 这里不是
       n716::vector<int> v1{ 1,2,3 };
       n716::vector<int> v2{ 4,5,6 };
       double a{ 1.5 };
@@ -1649,14 +1737,17 @@ int main()
    }
 
    {
+      std::cout << " lazy computing\n";
+      // 这里的是
       n717::vector<int> v1{ 1,2,3 };
       n717::vector<int> v2{ 4,5,6 };
       double a{ 1.5 };
 
       n717::vector<double> v3 = v1 + a * v2; // {7.0, 9.5, 12.0}
 
-      int c;
-      std::cin >> c;
+      std::cout << "please input a number as c: ";
+      int c = 10;
+      // std::cin >> c;
       n717::vector<double> v31 = v1 + c * v2; // {7.0, 9.5, 12.0}
       n717::vector<int> v4 = v1 * v2 + v1 + v2; // {9, 17, 27}
    }

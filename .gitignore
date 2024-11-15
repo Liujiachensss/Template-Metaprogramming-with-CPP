@@ -351,3 +351,6 @@ MigrationBackup/
 
 # ignore build folder
 build/
+build.ninja
+.history
+.vscode

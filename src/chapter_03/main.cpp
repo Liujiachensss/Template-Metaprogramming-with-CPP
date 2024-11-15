@@ -332,7 +332,7 @@ namespace n316
    constexpr int Sum = (... + R);
 
    template <int... I>
-   constexpr auto indexes = std::make_index_sequence<5>;
+   constexpr auto indexes = std::make_index_sequence<5>();
 }
 
 namespace n317

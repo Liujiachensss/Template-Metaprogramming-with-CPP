@@ -377,7 +377,7 @@ namespace n621
 
    template <typename T>
    requires (A<T> || B<T>)
-   void f() {}
+   void f_() {}
 
    template <typename T>
    requires A<T> && (!A<T> || B<T>)

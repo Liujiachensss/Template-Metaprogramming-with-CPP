@@ -1,2 +1,6 @@
 file(GLOB headers *.h)
 add_executable(chapter_04 main.cpp ${headers})
+# target_compile_options(chapter_04 PRIVATE -Wno-volatile)
+target_include_directories(chapter_04 PRIVATE ${Boost_INCLUDE_DIRS})
+target_link_libraries(chapter_04 PUBLIC Boost::boost)
+message(STATUS "Boost include dir: ${Boost_INCLUDE_DIRS}")

@@ -3,7 +3,7 @@
 
 namespace ext
 {
-   template wrapper<int>;
+   template struct wrapper<int>;
 
    void f()
    {

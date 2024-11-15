@@ -1,5 +1,5 @@
 #include <iostream>
-#include <string>
+#include <cstring>
 #include <ostream>
 #include <vector>
 #include <array>
@@ -449,7 +449,30 @@ namespace n520
    }
 }
 
+namespace n521 {
+template <typename, typename... Ts>
+struct has_common_type : std::false_type {};
 
+template <typename... Ts>
+struct has_common_type<std::void_t<std::common_type_t<Ts...>>, Ts...>
+    : std::true_type {};
+
+template <typename... Ts>
+constexpr bool has_common_type_v =
+    sizeof...(Ts) < 2 || has_common_type<void, Ts...>::value;
+
+template <class T, T v>
+struct integral_constant {
+  static constexpr T value = v;
+  using value_type = T;
+};
+
+
+template <typename... Ts,
+         typename = std::enable_if_t<has_common_type_v<Ts...>>>
+void process(Ts&&... ts) {}
+
+}  // namespace n521
 
 int main()
 {
@@ -661,6 +684,7 @@ int main()
    }
 
    {
+      std::cout << "\n--- ch5.6 ---\n";
       std::vector<int> v1{ 1, 2, 3, 4, 5 };
       std::vector<int> v2(5);
 

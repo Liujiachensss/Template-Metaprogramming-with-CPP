@@ -3,6 +3,7 @@
 #include <mutex>
 #include <string>
 #include <map>
+// #include <boost/type_index.hpp>
 
 namespace n401
 {
@@ -75,8 +76,8 @@ namespace n403
    {
       void parse()
       {
-         //init();        // error: identifier not found
-         this->init();
+         base_parser<T>::init();        // error: identifier not found
+         // this->init();
 
          std::cout << "parse\n";
       }
@@ -179,13 +180,13 @@ namespace n407
       parser* p1;          // parser is the CI
       parser<T>* p2;       // parser<T> is the CI
       n407::parser<T>* p3;  // ::parser<T> is the CI
-      //parser<T*> p4;     // parser<T*> is not the CI
+      parser<T*> p4;     // parser<T*> is not the CI
 
       struct token
       {
          token* t1;              // token is the CI
          parser<T>::token* t2;   // parser<T>::token is the CI
-         //typename parser<T*>::token* t3; // parser<T*>::token is not the CI
+         typename parser<T*>::token* t3; // parser<T*>::token is not the CI
       };
    };
 
@@ -567,7 +568,6 @@ namespace n421
       std::cout << "h(foo&&)\n";
    }
 }
-
 namespace n422
 {
    struct foo
@@ -714,6 +714,13 @@ namespace n428
 
       int get() const { return val; }
    };
+
+   template <typename T>
+   struct wrapper2
+   {
+      T data;
+   };
+
 }
 
 namespace n429
@@ -964,6 +971,12 @@ namespace n442
    struct printer;
 
    template <typename T>
+   struct wrapper;
+
+   template <typename T>
+   void print(wrapper<T> const& w);
+
+   template <typename T>
    struct wrapper
    {
       wrapper(T const v) :value(v)
@@ -1046,6 +1059,12 @@ namespace n444
 {
    template <typename T>
    struct printer;
+   
+   template <typename T>
+   struct wrapper;
+
+   template <typename T>
+   void print(wrapper<T> const& w);
 
    template <typename T>
    struct wrapper
@@ -1156,7 +1175,7 @@ int main()
 
    {
       using namespace n404;
-
+      std::cout << "\n--- namespace n404 ---\n";
       parser<int> p1;
       p1.parse();
 
@@ -1166,27 +1185,29 @@ int main()
 
    {
       using namespace n405;
-
+      std::cout << "\n--- namespace n405 ---\n";
       parser<int> p;
       p.parse();
    }
 
    {
       using namespace n406;
-
+      std::cout << "\n--- namespace n406 ---\n";
       parser<int> p;
       p.parse();
    }
 
    {
       using namespace n407;
-
+      std::cout << "\n--- namespace n407 ---\n";
       [[maybe_unused]]
       parser<int> p;
    }
 
    {
       using namespace n408;
+      std::cout << "\n--- ch4.2 ---\n";
+      std::cout << "\n--- namespace n408 ---\n";
 
       std::cout << factorial<0>::value << '\n';
       std::cout << factorial<1>::value << '\n';
@@ -1199,6 +1220,7 @@ int main()
 
    {
       using namespace n409;
+      std::cout << "\n--- namespace n409 ---\n";
 
       std::cout << factorial<0> << '\n';
       std::cout << factorial<1> << '\n';
@@ -1211,6 +1233,7 @@ int main()
 
    {
       using namespace n409b;
+      std::cout << "\n--- namespace n409b ---\n";
 
       std::cout << factorial<1>() << '\n';
       std::cout << factorial<2>() << '\n';
@@ -1221,6 +1244,7 @@ int main()
 
    {
       using namespace n410;
+      std::cout << "\n--- namespace n410 ---\n";
 
       std::cout << factorial(0) << '\n';
       std::cout << factorial(1) << '\n';
@@ -1229,20 +1253,24 @@ int main()
       std::cout << factorial(4) << '\n';
       std::cout << factorial(5) << '\n';
 
-      std::cout << typeid(manyfold_wrapper<0>::value_type).name() << '\n';
-      std::cout << typeid(manyfold_wrapper<1>::value_type).name() << '\n';
-      std::cout << typeid(manyfold_wrapper<2>::value_type).name() << '\n';
-      std::cout << typeid(manyfold_wrapper<3>::value_type).name() << '\n';
+      // using boost::typeindex::type_id_with_cvr;
+      // std::cout << type_id_with_cvr<manyfold_wrapper<0>::value_type>().pretty_name() << '\n';
+      // std::cout << type_id_with_cvr<manyfold_wrapper<1>::value_type>().pretty_name() << '\n';
+      // std::cout << type_id_with_cvr<manyfold_wrapper<2>::value_type>().pretty_name() << '\n';
+      // std::cout << type_id_with_cvr<manyfold_wrapper<3>::value_type>().pretty_name() << '\n';
    }
 
    {
       using namespace n411;
+      std::cout << "\n--- namespace n411 ---\n";
 
       std::cout << sum<256> << '\n';
    }
 
    {
       using namespace n412;
+      std::cout << "\n\n--- ch4.3 ---\n";
+      std::cout << "\n--- namespace n412 ---\n";
 
       process(42);          // T is int
       process<int>(42);     // T is int, redundant
@@ -1312,6 +1340,7 @@ int main()
 
    {
       using namespace n413;
+      std::cout << "\n--- namespace n413 ---\n";
 
       double arr[5]{};
       //process(arr);           // error
@@ -1321,12 +1350,14 @@ int main()
    {
       using namespace n414;
       //process();        // [1] error
+      std::cout << "\n--- namespace n414 ---\n";
       process<int>();   // [2] OK
       process(10);      // [3] OK
    }
 
    {
       using namespace n415;
+      std::cout << "\n--- namespace n415 ---\n";
 
       //invoke(&alpha);
       //invoke(&beta);
@@ -1335,6 +1366,7 @@ int main()
 
    {
       using namespace n416;
+      std::cout << "\n--- namespace n416 ---\n";
 
       int arr1[10];
       int arr2[5][10];
@@ -1347,6 +1379,7 @@ int main()
 
    {
       using namespace n417;
+      std::cout << "\n--- namespace n417 ---\n";
 
       ncube<5> cube;
       // process(cube); // error
@@ -1355,6 +1388,8 @@ int main()
 
    {
       using namespace n418;
+      std::cout << "\n\n--- 4.4 class template parameter deduce ---\n";
+      std::cout << "\n--- namespace n418 ---\n";
 
       std::pair<int, double> p{ 42, 42.0 };
       std::vector<int> v{ 1,2,3,4,5 };
@@ -1379,6 +1414,7 @@ int main()
 
    {
       using namespace n419;
+      std::cout << "\n--- namespace n419 ---\n";
 
       auto p = new point_t(1, 2);
 
@@ -1404,6 +1440,7 @@ int main()
 
    {
       using namespace n420;
+      std::cout << "\n--- namespace n420 ---\n";
 
       int arr[] = { 1,2,3,4,5 };
       range_t r(std::begin(arr), std::end(arr));
@@ -1420,14 +1457,17 @@ int main()
       std::vector v1{ 42 };      // vector<int>
       std::vector v2{ v1, v1 };  // vector<vector<int>>
       std::vector v3{ v1 };      // vector<int>
+      // using boost::typeindex::type_id_with_cvr;
 
-      std::cout << typeid(decltype(v1)).name() << '\n';
-      std::cout << typeid(decltype(v2)).name() << '\n';
-      std::cout << typeid(decltype(v3)).name() << '\n';
+      // std::cout << type_id_with_cvr<decltype(v1)>().pretty_name() << '\n';
+      // std::cout << type_id_with_cvr<decltype(v2)>().pretty_name() << '\n';
+      // std::cout << type_id_with_cvr<decltype(v3)>().pretty_name() << '\n';
    }
 
    {
       using namespace n421;
+      std::cout << "\n--- ch4.5 reference forward ---\n";
+      std::cout << "\n--- namespace n421 ---\n";
 
       foo x = { 42 };   // x is l-value
       foo& rx = x;      // rx is l-value
@@ -1462,6 +1502,7 @@ int main()
 
    {
       using namespace n422;
+      std::cout << "\n--- namespace n422 ---\n";
 
       foo x{ 42 };
 
@@ -1471,6 +1512,7 @@ int main()
 
    {
       using namespace n423;
+      std::cout << "\n--- namespace n423 ---\n";
 
       foo x{ 42 };
 
@@ -1480,6 +1522,7 @@ int main()
 
    {
       using namespace n424;
+      std::cout << "\n--- namespace n424 ---\n";
 
       int x = 42;
       f(x);                   // f(T&&)
@@ -1520,6 +1563,7 @@ int main()
 
    {
       using namespace n425;
+      std::cout << "\n--- namespace n425 ---\n";
 
       foo x{ 42 };
 
@@ -1529,6 +1573,7 @@ int main()
 
    {
       using namespace n426;
+      std::cout << "\n--- namespace n426 ---\n";
 
       foo x{ 42 };
 
@@ -1538,38 +1583,45 @@ int main()
 
    {
       using namespace n428;
+      std::cout << "\n--- ch4.6 decltype ---\n";
+      std::cout << "\n--- namespace n428 ---\n";
 
       int a = 42;
       int& ra = a;
       const double d = 42.99;
       long arr[10];
       long l = 0;
-      char* p = nullptr;
-      char c = 'x';
+
       wrapper w1{ 1 };
       wrapper* w2 = new wrapper{ 2 };
+      char* p = nullptr;
+      char c = 'x';
 
       [[maybe_unused]] decltype(a) e1;             // R1, int
       [[maybe_unused]] decltype(ra) e2 = a;        // R1, int&
+      [[maybe_unused]] decltype(d) e8 = 1;         // R1, const double
+      [[maybe_unused]] decltype(arr) e9;           // R1, long[10]
+      [[maybe_unused]] decltype(arr[1]) e10 = l;   // R3, long&
+
       [[maybe_unused]] decltype(f) e3;             // R1, int()
       [[maybe_unused]] decltype(f()) e4;           // R2, int
       //[[maybe_unused]] decltype(g) e5;           // R1, error
       [[maybe_unused]] decltype(g(1)) e6;          // R2, int
       [[maybe_unused]] decltype(&f) e7 = nullptr;  // R4, int(*)()
-      [[maybe_unused]] decltype(d) e8 = 1;         // R1, const double
-      [[maybe_unused]] decltype(arr) e9;           // R1, long[10]
-      [[maybe_unused]] decltype(arr[1]) e10 = l;   // R3, long&
+
+
       [[maybe_unused]] decltype(w1.val) e11;       // R1, int
       [[maybe_unused]] decltype(w1.get()) e12;     // R1, int
       [[maybe_unused]] decltype(w2->val) e13;      // R1, int
       [[maybe_unused]] decltype(w2->get()) e14;    // R1, int
+      [[maybe_unused]] decltype(p) e19 = nullptr;  // R1, char*
+      [[maybe_unused]] decltype(*p) e20 = c;       // R3, char&
+      [[maybe_unused]] decltype(p[0]) e21 = c;     // R3, char&
+
       [[maybe_unused]] decltype(42) e15 = 1;       // R4, int
       [[maybe_unused]] decltype(1 + 2) e16;        // R4, int
       [[maybe_unused]] decltype(a + 1) e17;        // R4, int
       [[maybe_unused]] decltype(a = 0) e18 = a;    // R3, int&
-      [[maybe_unused]] decltype(p) e19 = nullptr;  // R1, char*
-      [[maybe_unused]] decltype(*p) e20 = c;       // R3, char&
-      [[maybe_unused]] decltype(p[0]) e21 = c;     // R3, char&
 
       delete w2;
    }
@@ -1581,15 +1633,19 @@ int main()
    }
 
    {
-      using namespace n412;
-      [[maybe_unused]] decltype(wrapper<double>::data) e1;  // double
+      using namespace n428;
+      std::cout << "\n--- namespace n428 ---\n";
+
+      [[maybe_unused]] decltype(wrapper2<double>::data) e1;  // double
 
       int a = 42;
-      [[maybe_unused]] decltype(wrapper<char>::data, a) e2; // int&
+      // [[maybe_unused]] decltype(wrapper2<char>::data, a) e2; // error！
+      [[maybe_unused]] decltype(wrapper2<char>::data, a) e2 = a; // int&
    }
 
    {
       using namespace n429;
+      std::cout << "\n--- namespace n429 ---\n";
 
       foo f;
       foo const cf;
@@ -1653,6 +1709,8 @@ int main()
 
    {
       using namespace n430;
+      std::cout << "\n--- namespace n430 ---\n";
+
       auto m1 = minimum(1, 5);         // OK
       auto m2 = minimum(18.49, 9.99);  // OK
       //auto m3 = minimum(1, 9.99);      // error, arguments of different type
@@ -1660,6 +1718,8 @@ int main()
 
    {
       using namespace n431;
+      std::cout << "\n--- namespace n431 ---\n";
+
       auto m1 = minimum(1, 5);         // OK
       auto m2 = minimum(18.49, 9.99);  // OK
       auto m3 = minimum(1, 9.99);      // OK
@@ -1667,6 +1727,8 @@ int main()
 
    {
       using namespace n432;
+      std::cout << "\n--- namespace n432 ---\n";
+
       auto m1 = minimum(1, 5);         // OK
       auto m2 = minimum(18.49, 9.99);  // OK
       auto m3 = minimum(1, 9.99);      // OK
@@ -1674,6 +1736,8 @@ int main()
 
    {
       using namespace n433;
+      std::cout << "\n--- namespace n433 ---\n";
+
       auto m1 = minimum(1, 5);         // OK
       auto m2 = minimum(18.49, 9.99);  // OK
       auto m3 = minimum(1, 9.99);      // OK
@@ -1681,6 +1745,7 @@ int main()
 
    {
       using namespace n434;
+      std::cout << "\n--- namespace n434 ---\n";
 
       int a = 42;
 
@@ -1690,6 +1755,7 @@ int main()
 
    {
       using namespace n435;
+      std::cout << "\n--- namespace n435 ---\n";
 
       int a = 42;
 
@@ -1699,6 +1765,8 @@ int main()
 
    {
       using namespace n436;
+      std::cout << "\n--- ch4.7 std::declval ---\n";
+      std::cout << "\n--- namespace n436 ---\n";
 
       static_assert(
          std::is_same_v<
@@ -1716,6 +1784,7 @@ int main()
 
    {
       using namespace n437;
+      std::cout << "\n--- namespace n437 ---\n";
 
       static_assert(
          std::is_same_v<
@@ -1730,6 +1799,8 @@ int main()
 
    {
       using namespace n438;
+      std::cout << "\n\n--- ch4.8 friend ---\n";
+      std::cout << "\n--- namespace n438 ---\n";
 
       wrapper w{ 42 };
       print(w);
@@ -1737,6 +1808,7 @@ int main()
 
    {
       using namespace n439;
+      std::cout << "\n--- namespace n439 ---\n";
 
       wrapper w{ 42 };
       print<int>(w);
@@ -1747,6 +1819,7 @@ int main()
 
    {
       using namespace n440;
+      std::cout << "\n--- namespace n440 ---\n";
 
       wrapper w{ 43 };
       print<int>(w);
@@ -1757,6 +1830,7 @@ int main()
 
    {
       using namespace n442;
+      std::cout << "\n--- namespace n442 ---\n";
 
       wrapper w1{ 43 };
       print(w1);
@@ -1769,6 +1843,7 @@ int main()
 
    {
       using namespace n443;
+      std::cout << "\n--- namespace n443 ---\n";
 
       wrapper w1{ 43 };
       print(w1);
@@ -1781,6 +1856,7 @@ int main()
 
    {
       using namespace n445;
+      std::cout << "\n--- namespace n445 ---\n";
 
       executor e;
       e.run();
@@ -1788,6 +1864,8 @@ int main()
 
    {
       using namespace n446;
+      std::cout << "\n--- namespace n446 ---\n";
+
       dictionary<dictionary_traits> d;
       d.add(1, "2");
    }

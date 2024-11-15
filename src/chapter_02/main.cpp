@@ -1,6 +1,6 @@
 #include <iostream>
 #include <array>
-#include <string>
+#include <cstring>
 #include <string_view>
 #include <vector>
 #include <map>
@@ -9,6 +9,7 @@
 #include <numeric>
 #include <algorithm>
 #include <functional>
+#include <memory>
 
 #include "wrapper.h"
 
@@ -519,7 +520,7 @@ namespace n226
    template int add(int, int);         // [1]
 }
 
-template int n226::add(int, int);       // [2]
+template<int> int n226::add(int, int);       // [2]
 
 namespace n227
 {
